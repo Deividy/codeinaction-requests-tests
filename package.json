@@ -1,0 +1,8 @@
+{
+    "name": "noderequesttests-codeinaction",
+    "description": "code in action nodejs tests!",
+    "version": "0.0.01",
+    "dependencies": {
+        "jsonwebtoken": ""
+    }
+}

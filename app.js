@@ -1,4 +1,5 @@
 const http = require('http');
+const jwt = require('jsonwebtoken');
 
 const port = 9000;
 const host = 'localhost';
@@ -27,27 +28,62 @@ async function getJsonBody (req) {
 }
 
 async function postInActionHandler (req, res) {
-    try {
-        const postData = await getJsonBody(req);
-        console.log(postData);
-        console.log(postData.video);
+    const postData = await getJsonBody(req);
+    console.log(postData);
+    console.log(postData.video);
 
-        res.statusCode = 200;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end('sucesso! :D');
+    sendText(res, 'sucesso! :D');
+}
+
+
+const secret = '#codeinaction TAMOJUNTO! :)';
+
+async function postSetJwt (req, res) {
+    const postData = await getJsonBody(req);
+    const { codeinaction } = postData;
+
+    const token = jwt.sign({ codeinaction }, secret);
+    sendText(res, token);
+}
+
+function sendText (res, text) {
+    res.statusCode = 200;
+    res.setHeader('Content-Type', 'text/plain');
+    res.end(text);
+}
+
+function getVerifyJwt (req, res) {
+    const { headers } = req;
+    const { authorization } = headers;
+
+    const token = authorization.replace('Bearer ', '');
+
+    if (!jwt.verify(token, secret)) throw new Error('Invalid token');
+
+    const decodedToken = jwt.decode(token);
+    sendText(res, decodedToken.codeinaction);
+}
+
+function requestHandler (req, res) {
+    try {
+        if (req.url === '/post-codeinaction' && req.method === 'POST') {
+            return postInActionHandler(req, res);
+        }
+
+        if (req.url === '/set-jwt' && req.method === 'POST') {
+            return postSetJwt(req, res);
+        }
+
+        if (req.url === '/verify-jwt' && req.method === 'GET') {
+            return getVerifyJwt(req, res);
+        }
     } catch (ex) {
         console.error(ex);
 
         res.statusCode = 500;
-
         res.setHeader('Content-Type', 'text/plain');
         res.end(ex.message);
-    }
-}
-
-function requestHandler (req, res) {
-    if (req.url === '/post-codeinaction' && req.method === 'POST') {
-        return postInActionHandler(req, res);
+        return;
     }
 
     res.statusCode = 404;
