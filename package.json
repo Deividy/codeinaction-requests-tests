@@ -3,6 +3,8 @@
     "description": "code in action nodejs tests!",
     "version": "0.0.01",
     "dependencies": {
-        "jsonwebtoken": ""
+        "jsonwebtoken": "",
+        "express": "",
+        "body-parser": ""
     }
 }

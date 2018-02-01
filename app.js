@@ -1,55 +1,29 @@
 const http = require('http');
 const jwt = require('jsonwebtoken');
+const express = require('express');
+const bodyParser = require('body-parser');
+
+const app = express();
 
 const port = 9000;
 const host = 'localhost';
+const secret = '#codeinaction TAMOJUNTO! :)';
 
-async function getJsonBody (req) {
-    return new Promise(function (resolve, reject) {
-        let body = '';
+function postInActionHandler (req, res) {
+    const postData = req.body;
 
-        req.on('data', function (data) {
-            body += data;
-
-            // ~1mb
-            if (body.length > 1e6) {
-                req.connection.destroy();
-            }
-        });
-
-        req.on('end', function () {
-            try {
-                resolve(JSON.parse(body));
-            } catch (ex) {
-                reject(ex);
-            }
-        });
-    });
-}
-
-async function postInActionHandler (req, res) {
-    const postData = await getJsonBody(req);
     console.log(postData);
     console.log(postData.video);
 
-    sendText(res, 'sucesso! :D');
+    res.status(200).send('sucesso! agora com express :)');
 }
 
-
-const secret = '#codeinaction TAMOJUNTO! :)';
-
-async function postSetJwt (req, res) {
-    const postData = await getJsonBody(req);
+function postSetJwt (req, res) {
+    const postData = req.body;
     const { codeinaction } = postData;
 
     const token = jwt.sign({ codeinaction }, secret);
-    sendText(res, token);
-}
-
-function sendText (res, text) {
-    res.statusCode = 200;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end(text);
+    res.status(200).send(token);
 }
 
 function getVerifyJwt (req, res) {
@@ -57,41 +31,18 @@ function getVerifyJwt (req, res) {
     const { authorization } = headers;
 
     const token = authorization.replace('Bearer ', '');
-
-    if (!jwt.verify(token, secret)) throw new Error('Invalid token');
+    jwt.verify(token, secret);
 
     const decodedToken = jwt.decode(token);
-    sendText(res, decodedToken.codeinaction);
+    res.status(200).send(decodedToken.codeinaction);
 }
 
-function requestHandler (req, res) {
-    try {
-        if (req.url === '/post-codeinaction' && req.method === 'POST') {
-            return postInActionHandler(req, res);
-        }
+app.post('/post-codeinaction', bodyParser.json(), postInActionHandler);
+app.post('/set-jwt', bodyParser.json(), postSetJwt);
+app.get('/verify-jwt', getVerifyJwt);
 
-        if (req.url === '/set-jwt' && req.method === 'POST') {
-            return postSetJwt(req, res);
-        }
+app.use(function (req, res) { res.status(404).send('Not found'); });
 
-        if (req.url === '/verify-jwt' && req.method === 'GET') {
-            return getVerifyJwt(req, res);
-        }
-    } catch (ex) {
-        console.error(ex);
-
-        res.statusCode = 500;
-        res.setHeader('Content-Type', 'text/plain');
-        res.end(ex.message);
-        return;
-    }
-
-    res.statusCode = 404;
-    res.setHeader('Content-Type', 'text/plain');
-    res.end('Not found');
-}
-
-const server = http.createServer(requestHandler);
-server.listen(port, host, () => {
+app.listen(port, host, () => {
     console.log(`running ${host}:${port}`);
 });
